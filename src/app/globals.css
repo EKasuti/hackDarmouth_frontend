@@ -1,2 +1,6 @@
 @import "tailwindcss";
 @import "tw-animate-css";
+
+:root {
+    --primary: 1 105 62;
+  }

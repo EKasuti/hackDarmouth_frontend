@@ -1,6 +1,6 @@
 "use client"
 
-import { Folder, Home, Key, User, Users } from "lucide-react"
+import { Folder, Home, Key, NotebookPen, User, Users } from "lucide-react"
 import Link from "next/link"
 import { cn } from "@/lib/utils"
 import { usePathname } from "next/navigation"
@@ -15,10 +15,12 @@ export function Sidebar() {
         {title: "Admin", href: "/dashboard/admin", icon: Key},
     ]
     return (
-        <div className="flex h-full w-[80px] flex-col border-r bg-black">
+        <div className="flex h-full w-[80px] flex-col bg-black">
             {/* Logo */}
-            <div className="flex h-[60px] item-center justify-center">
-                <h1 className="text-white">Logo</h1>
+            <div className="flex h-[60px] item-center justify-center bg-[#01693E]">
+                <Link href="/dashboard" className="flex items-center gap-2">
+                    <NotebookPen className="text-white"/>
+                </Link>
             </div>
 
             {/* Sidebar Items */}
