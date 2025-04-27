@@ -9,6 +9,7 @@ import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip } from "recha
 import { useSession } from "next-auth/react";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { ProjectResource } from "../types/project";
+import Link from "next/link";
 
 // Static notifications and tickets
 type Note = { id: number; text: string; time: string };
@@ -81,18 +82,22 @@ export default function Dashboard() {
           <CardContent>
             <p className="text-muted-foreground mb-6">Applying quantum computing algorithms to accelerate drug candidate identification and validation through machine learning models.</p>
             <Button variant="outline" className="w-full md:w-auto">
-              Begin Onboarding <ArrowRight className="ml-2 h-4 w-4" />
+              <Link href="/dashboard/onboarding">
+                <div className="flex items-center">
+                  <p>Begin Onboarding</p> 
+                  <ArrowRight className="ml-2 h-4 w-4" />
+                </div>
+              </Link>
             </Button>
           </CardContent>
         </Card>
-
         <Card>
         <CardHeader className="flex items-center justify-between">
           <div className="flex items-center space-x-2">
             <Bell />
             <h2 className="text-lg font-semibold">Lab Communications</h2>
           </div>
-          <div className="p-1 border rounded-full">
+          <div className="p-1 border rounded-full hover:bg-[#01693E] hover:text-white">
             <ArrowUpRight />
           </div>
         </CardHeader>

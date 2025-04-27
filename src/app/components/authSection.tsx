@@ -7,7 +7,7 @@ export default function CheckAuth() {
     return (
       <>
         <p>Not signed in</p>
-        <button onClick={() => signIn("google")} className="px-4 py-2 bg-blue-500 text-white rounded">
+        <button onClick={() => signIn("google", { callbackUrl: "/dashboard" })} className="px-4 py-2 bg-blue-500 text-white rounded">
           Sign in with Google
         </button>
       </>
