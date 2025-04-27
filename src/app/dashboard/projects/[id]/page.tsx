@@ -172,6 +172,7 @@ export default function ProjectPage() {
   const [openMemberDialog, setOpenMemberDialog] = useState(false);
   const [selectedNewMembers, setSelectedNewMembers] = useState<ProjectMember[]>([]);
   const [addingMembers, setAddingMembers] = useState(false);
+  const [sortMethod, setSortMethod] = useState<string>("priority");
 
   // UseEffect to fetch project data
   useEffect(() => {
@@ -340,6 +341,24 @@ export default function ProjectPage() {
       setAddingMembers(false);
     }
   };
+
+  const sortedTasks = project?.tasks
+  ? [...project.tasks].sort((a, b) => {
+      if (sortMethod === "priority") {
+        // Higher priority numbers first (3, 2, 1)
+        return (b.priority || 0) - (a.priority || 0);
+      } else {
+        // Default: sort by deadline
+        // Push tasks without deadlines to the very end
+        if (!a.deadline) return 1;
+        if (!b.deadline) return -1;
+        // Sort by deadline (earliest first)
+        const da = a.deadline instanceof Date ? a.deadline.getTime() : new Date(a.deadline).getTime();
+        const db = b.deadline instanceof Date ? b.deadline.getTime() : new Date(b.deadline).getTime();
+        return da - db;
+      }
+    })
+  : [];
 
   // function to handle resource
   if (loading) return <div className="text-center mt-10">Loading project...</div>;
@@ -561,11 +580,19 @@ export default function ProjectPage() {
         </TabsContent>
 
         <TabsContent value="tasks">
-          
-
           <div className="mt-4">
             <div className="flex justify-between items-center mb-4">
               <h2 className="text-xl font-semibold">Tasks</h2>
+              <label htmlFor="sortMethod" className="text-sm text-gray-600">Sort by:</label>
+              <select
+                id="sortMethod"
+                value={sortMethod}
+                onChange={(e) => setSortMethod(e.target.value)}
+                className="border rounded px-2 py-1 text-sm"
+              >
+                <option value="deadline">Deadline</option>
+                <option value="priority">Priority</option>
+              </select>
               <Dialog open={openDialog} onOpenChange={setOpenDialog}>
                 <DialogTrigger asChild>
                   <Button >Add Task</Button>
@@ -672,16 +699,8 @@ export default function ProjectPage() {
 
             {project.tasks && project.tasks.length > 0 ? (
               <div className="grid gap-4">
-                {[...project.tasks]
-                .sort((a, b) => {
-                  if (!a.deadline) return 1;          // a goes after b
-                  if (!b.deadline) return -1;         // a goes before b
-                  return (
-                    new Date(a.deadline).getTime() -
-                    new Date(b.deadline).getTime()
-                  );
-                })
-                .map((task: ProjectTask, index: number) => {
+
+                {sortedTasks.map((task: ProjectTask, index: number) => {
                   // Calculate hours left
                   const deadlineDate = task.deadline ? tillDeadline(task.deadline) : null;
                   const toDeadline = deadlineDate ? deadlineDate + " left" : "No deadline";
