@@ -1,9 +1,12 @@
-'use client';
+"use client";
 
-import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from "@/components/ui/card";
+import { Card, CardTitle, CardContent, CardFooter } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Skeleton } from "@/components/ui/skeleton";
 import Image from "next/image";
 import { useState, useEffect } from "react";
 import { useSession } from "next-auth/react";
+import { Github, Linkedin } from "lucide-react";
 
 interface UserProfile {
   avatar_url: string;
@@ -31,11 +34,8 @@ export default function Profile() {
 
       try {
         const res = await fetch(`/api/profile/${email}`);
-        if (!res.ok) {
-          throw new Error(`Error fetching profile: ${res.statusText}`);
-        }
-        const data = await res.json();
-        setUser(data);
+        if (!res.ok) throw new Error(`Error fetching profile: ${res.statusText}`);
+        setUser(await res.json());
       } catch (err) {
         console.error(err);
         setError(err instanceof Error ? err.message : "Something went wrong");
@@ -44,80 +44,96 @@ export default function Profile() {
       }
     };
 
-    if (session?.user?.email) {
-      fetchUserProfile(session.user.email);
-    }
+    if (session?.user?.email) fetchUserProfile(session.user.email);
   }, [session]);
 
-  if (status === "loading") return <p>Loading session...</p>;
-  if (!session) return <p>You need to sign in to view your profile.</p>;
+  if (status === "loading" || loading)
+    return (
+      <div className="max-w-3xl mx-auto p-6">
+        <Skeleton className="w-full h-[300px] rounded-2xl" />
+      </div>
+    );
 
-  if (loading) return <p>Loading profile...</p>;
-  if (error) return <p className="text-red-600">Error: {error}</p>;
-  if (!user) return <p>User profile not found.</p>;
+  if (!session) return <p className="text-center mt-10">Please sign in to view your profile.</p>;
+  if (error) return <p className="text-center text-red-600 mt-10">Error: {error}</p>;
+  if (!user) return <p className="text-center mt-10">User profile not found.</p>;
 
-  let createdDate = "";
-  if (typeof user.createdAt === "string") {
-    createdDate = new Date(user.createdAt).toLocaleDateString();
-  } else if (user.createdAt?.seconds) {
-    createdDate = new Date(user.createdAt.seconds * 1000).toLocaleDateString();
-  }
+  const createdDate =
+    typeof user.createdAt === "string"
+      ? new Date(user.createdAt).toLocaleDateString()
+      : user.createdAt?.seconds
+      ? new Date(user.createdAt.seconds * 1000).toLocaleDateString()
+      : "";
 
   return (
-    <div className="max-w-2xl mx-auto p-6">
-      <Card className="p-6 shadow-md rounded-2xl">
-        <CardHeader className="flex items-center space-x-4">
-          {user.avatar_url ? (
-            <Image
-              src={user.avatar_url}
-              alt={user.username}
-              width={80}
-              height={80}
-              className="rounded-full object-cover"
-            />
-          ) : (
-            <div className="w-20 h-20 rounded-full bg-gray-300" />
-          )}
-          <div>
-            <CardTitle className="text-2xl">{user.username}</CardTitle>
-            <CardDescription className="text-gray-600">{user.role}</CardDescription>
-            <p className="text-sm text-gray-500">{user.email}</p>
-          </div>
-        </CardHeader>
+    <div className="max-w-3xl mx-auto p-6">
+      <Card className="rounded-2xl shadow-sm">
+        {/* Gradient header */}
+        <div className="h-24 w-full rounded-t-2xl bg-gradient-to-r from-indigo-500 to-purple-500" />
 
-        <CardContent className="mt-4 space-y-4">
-          <div>
-            <h2 className="text-lg font-semibold">About</h2>
-            <p className="text-gray-700">{user.bio || "No bio available."}</p>
-          </div>
+        <div className="px-6 -mt-16">
+          {/* avatar + info grid */}
+          <div className="grid grid-cols-1 lg:grid-cols-[120px_1fr] gap-6 items-center">
+            <div className="flex justify-center lg:justify-start">
+              {user.avatar_url ? (
+                <Image
+                  src={user.avatar_url}
+                  alt={`${user.username}'s avatar`}
+                  width={120}
+                  height={120}
+                  className="rounded-full ring-4 ring-white object-cover"
+                />
+              ) : (
+                <div className="w-28 h-28 rounded-full bg-gray-300 ring-4 ring-white" />
+              )}
+            </div>
 
-          <div className="flex space-x-4">
-            {user.github && (
-              <a
-                className="text-blue-600 underline"
-                href={user.github}
-                target="_blank"
-                rel="noopener noreferrer"
-              >
-                GitHub
-              </a>
-            )}
-            {user.linkedin && (
-              <a
-                className="text-blue-600 underline"
+            <div className="space-y-1 text-center lg:text-left">
+              <CardTitle className="text-3xl">{user.username}</CardTitle>
+              <div className="flex flex-wrap justify-center lg:justify-start gap-2">
+                {user.role && <Badge>{user.role}</Badge>}
+                {user.specialities && <Badge variant="secondary">{user.specialities}</Badge>}
+              </div>
+              <p className="text-sm text-muted-foreground">{user.email}</p>
+            </div>
+          </div>
+        </div>
+
+        {/* MAIN CONTENT */}
+        <CardContent className="mt-8 space-y-6">
+          <section>
+            <h2 className="text-lg font-semibold mb-1">About</h2>
+            <p className="leading-relaxed">
+              {user.bio ? user.bio : <span className="text-muted-foreground">No bio available.</span>}
+            </p>
+          </section>
+        </CardContent>
+
+        <CardFooter className="flex flex-col lg:flex-row lg:items-center lg:justify-between text-sm text-muted-foreground px-6 pb-6">
+          <p>Member since&nbsp;<span className="font-medium text-gray-700">{createdDate}</span></p>
+          <p className="mt-2 lg:mt-0">
+          <div className="flex items-center gap-4">
+            {/* github */}
+            <a
+              href={user.github}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-1 hover:text-indigo-600 transition"
+            >
+              <Github className="h-5 w-5" />
+            </a>
+
+            {/* Linkedin */}
+            <a
                 href={user.linkedin}
                 target="_blank"
                 rel="noopener noreferrer"
+                className="flex items-center gap-1 hover:text-indigo-600 transition"
               >
-                LinkedIn
+                <Linkedin className="h-5 w-5" />
               </a>
-            )}
           </div>
-        </CardContent>
-
-        <CardFooter className="flex flex-col items-start text-gray-500 text-sm mt-4">
-          <p>Member since: {createdDate}</p>
-          <p>Specialities: {user.specialities || "None provided"}</p>
+          </p>
         </CardFooter>
       </Card>
     </div>

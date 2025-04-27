@@ -1,6 +1,6 @@
 "use client"
 
-import { Folder, Home, Key, NotebookPen, User, Users } from "lucide-react"
+import { Folder, Home, NotebookPen, User, Users } from "lucide-react"
 import Link from "next/link"
 import { cn } from "@/lib/utils"
 import { usePathname } from "next/navigation"
@@ -12,7 +12,6 @@ export function Sidebar() {
         {title: "Projects", href: "/dashboard/projects", icon: Folder},
         {title: "Members", href: "/dashboard/members", icon: Users},
         {title: "Profile", href: "/dashboard/profile", icon: User},
-        {title: "Admin", href: "/dashboard/admin", icon: Key},
     ]
     return (
         <div className="flex h-full w-[80px] flex-col bg-black">

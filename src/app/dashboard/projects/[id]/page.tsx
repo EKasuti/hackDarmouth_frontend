@@ -13,7 +13,7 @@ import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import Image from "next/image";
 import { DialogDescription } from "@radix-ui/react-dialog";
-import { ArrowRight } from "lucide-react";
+import { ArrowRight, Calendar, Clock, UserPlus } from "lucide-react";
 import { Video, FileText, Newspaper, Database, Code as CodeIcon, ExternalLink } from "lucide-react";
 import { formatFirebaseTimestamp } from "@/app/utils/utils";
 
@@ -118,7 +118,7 @@ function ProjectTabs({ project }: { project: Project }) {
               </p>
             )}
 
-            {/* ▶ view button */}
+
             {resource.url && (
               <Button asChild size="sm" className="mt-auto self-start">
                 <a
@@ -347,9 +347,9 @@ export default function ProjectPage() {
   if (!project) return <div className="text-center mt-10">No project found.</div>;
 
   return (
-    <div className="p-4 px-12">
+    <div className="px-12">
       <Tabs defaultValue="overview" className="w-full">
-        <TabsList className="grid w-full grid-cols-4">
+        <TabsList className="grid w-full grid-cols-4 mb-2 rounded-xl bg-gray-100 p-1">
           <TabsTrigger value="overview">Overview</TabsTrigger>
           <TabsTrigger value="resources">Resources</TabsTrigger>
           <TabsTrigger value="tasks">Tasks</TabsTrigger>
@@ -359,7 +359,6 @@ export default function ProjectPage() {
         {/* overview */}
         <TabsContent value="overview">
           <div className="mt-4">
-            <h2 className="text-xl font-semibold mb-2">Overview</h2>
             <div className="relative w-full h-64 rounded-xl overflow-hidden mb-6">
             
             {/* Background Image */}
@@ -380,21 +379,30 @@ export default function ProjectPage() {
 
           {/* Timeline */}
           {project.timeline && project.timeline.length > 0 && (
-            <div className="mt-10">
-              <h2 className="text-xl font-semibold mb-4">Project Timeline</h2>
-              <div className="relative flex items-center overflow-x-auto pb-10">
+            <div className="mt-10 bg-white rounded-xl p-6 border border-gray-200 shadow-sm">
+              <h2 className="text-xl font-semibold mb-6 flex items-center justify-center">
+                <Calendar size={20} className="mr-2 text-[#01693E]" />
+                Project Timeline
+              </h2>
+              <div className="relative flex items-center overflow-x-auto pb-12 px-4">
                 {/* Horizontal Line */}
-                <div className="absolute top-4 left-0 w-full border-t border-gray-300"></div>
+                <div className="absolute top-8 left-0 w-full border-t-2 border-[#01693E]/40"></div>
 
                 {/* Timeline Items */}
                 {project.timeline.map((item, idx) => (
                   <div key={idx} className="flex flex-col items-center relative min-w-[150px] mx-8">
                     {/* Circle */}
-                    <div className="w-8 h-8 bg-blue-500 rounded-full z-10 border-2 border-white"></div>
-                    
+                    <div className="w-15 h-15 bg-[#01693E] rounded-full z-10 border-2 border-white flex items-center justify-center">
+                      <Clock size={20} className="text-white" />
+                    </div>
 
                     {/* Task Title */}
-                    <span className="mt-2 text-center text-sm font-medium">{item.title}</span>
+                    <span className="mt-4 text-center text-sm font-medium">{item.title}</span>
+                    {item.deadline && (
+                      <span className="text-xs text-gray-500">
+                        {/* {item.deadline.toLocaleDateString()} */}
+                      </span>
+                    )}
                   </div>
                 ))}
               </div>
@@ -403,46 +411,64 @@ export default function ProjectPage() {
 
           {/* Members Section */}
           {project.members && project.members.length > 0 && (
-            <div className="mt-10">
-              <h2 className="text-xl font-semibold mb-4">Project Members</h2>
+            <div className="mt-12 bg-white rounded-xl p-6 border border-gray-200 shadow-sm">
+              <h2 className="text-xl font-semibold mb-6 flex items-center justify-center">
+                <UserPlus size={20} className="mr-2 text-[#01693E] text-center" />
+                Project Members
+              </h2>
 
-              <div className="overflow-x-auto border rounded-lg shadow-sm">
-                <table className="min-w-full text-sm text-left p-4">
-                  <thead className="border-b">
+              <div className="overflow-x-auto rounded-xl shadow-sm border border-gray-200">
+                <table className="min-w-full text-sm">
+                  <thead className="bg-gray-50">
                     <tr>
-                      <th className="p-2">Avatar</th>
-                      <th className="p-2">Name & Role</th>
-                      <th className="p-2">Email</th>
-                      <th className="p-2">Specialities</th>
-                      <th className="p-2">Member since</th>
-                      <th className="p-2">Visit Profile</th>
+                      <th className="px-4 py-3 text-left font-medium text-gray-500">Avatar</th>
+                      <th className="px-4 py-3 text-left font-medium text-gray-500">Name & Role</th>
+                      <th className="px-4 py-3 text-left font-medium text-gray-500">Email</th>
+                      <th className="px-4 py-3 text-left font-medium text-gray-500">Specialities</th>
+                      <th className="px-4 py-3 text-left font-medium text-gray-500">Member since</th>
+                      <th className="px-4 py-3 text-center font-medium text-gray-500">Profile</th>
                     </tr>
                   </thead>
-                  <tbody>
+                  <tbody className="divide-y divide-gray-200">
                     {project.members.map((member) => (
-                      <tr key={member.id} className="border-b">
-                        <td className="p-4">
+                      <tr key={member.id} className="hover:bg-gray-50 transition-colors">
+                        <td className="px-4 py-4">
                           <Image
                             src={member.avatar_url}
                             alt={member.username || "Member avatar"}
                             width={40}
                             height={40}
-                            className="rounded-full object-cover"
+                            className="rounded-full object-cover border-2 border-white shadow-sm"
                           />
                         </td>
-                        <td className="p-2">
+                        <td className="px-4 py-4">
                           <div className="font-medium">{member.username}</div>
                           <div className="text-xs text-gray-500">{member.role}</div>
                         </td>
-                        <td className="p-2"> {member.email} </td>
-                        <td className="p-2"> {member.specialities?.length > 0 ? member.specialities.split(",").join(", ") : "-"} </td>
-                        <td className="p-2"> {formatFirebaseTimestamp(member.createdAt)} </td>
-                        <td className="p-2">
+                        <td className="px-4 py-4 text-gray-600">{member.email}</td>
+                        <td className="px-4 py-4">
+                          {member.specialities?.length > 0 ? (
+                            <div className="flex flex-wrap gap-1">
+                              {member.specialities.split(",").map((specialty, idx) => (
+                                <span 
+                                  key={idx} 
+                                  className="px-2 py-1 bg-blue-50 text-[#01693E] rounded-md text-xs"
+                                >
+                                  {specialty.trim()}
+                                </span>
+                              ))}
+                            </div>
+                          ) : (
+                            <span className="text-gray-400">-</span>
+                          )}
+                        </td>
+                        <td className="px-4 py-4 text-gray-600">{formatFirebaseTimestamp(member.createdAt)}</td>
+                        <td className="px-4 py-4 text-center">
                           <a
                             href={`/dashboard/members`}
-                            className="text-blue-600 hover:underline text-sm"
+                            className="inline-flex items-center justify-center w-8 h-8 rounded-full border border-[#01693E] hover:bg-[#01693E] hover:text-white text-[#01693E] transition-colors"
                           >
-                            <ArrowRight/>
+                            <ArrowRight size={16} />
                           </a>
                         </td>
                       </tr>
@@ -535,6 +561,8 @@ export default function ProjectPage() {
         </TabsContent>
 
         <TabsContent value="tasks">
+          
+
           <div className="mt-4">
             <div className="flex justify-between items-center mb-4">
               <h2 className="text-xl font-semibold">Tasks</h2>
@@ -644,7 +672,16 @@ export default function ProjectPage() {
 
             {project.tasks && project.tasks.length > 0 ? (
               <div className="grid gap-4">
-                {project.tasks.map((task: ProjectTask, index: number) => {
+                {[...project.tasks]
+                .sort((a, b) => {
+                  if (!a.deadline) return 1;          // a goes after b
+                  if (!b.deadline) return -1;         // a goes before b
+                  return (
+                    new Date(a.deadline).getTime() -
+                    new Date(b.deadline).getTime()
+                  );
+                })
+                .map((task: ProjectTask, index: number) => {
                   // Calculate hours left
                   const deadlineDate = task.deadline ? tillDeadline(task.deadline) : null;
                   const toDeadline = deadlineDate ? deadlineDate + " left" : "No deadline";
@@ -655,7 +692,7 @@ export default function ProjectPage() {
                   if (task.priority === 3) priorityColor = "bg-red-500";
 
                   return (
-                    <div key={index} className="rounded-lg shadow-md border p-4 flex gap-4">
+                    <div key={index} className="rounded-lg shadow-md border border-black/30 p-4 flex gap-4">
                       {/* First column */}
                       <div className="flex-1 flex items-center gap-4">
                         <div>
@@ -702,10 +739,18 @@ export default function ProjectPage() {
 
         <TabsContent value="settings">
           <div className="mt-4">
-            <h2 className="text-xl font-semibold mb-4">Settings</h2>
+            <h2 className="text-xl font-semibold mb-4">Admin Settings</h2>
+            
+            {/* Horizontal line */}
+            <div className="border-t border-gray-300 mb-4"></div>
 
-            <Button onClick={() => setOpenMemberDialog(true)}>Add Members</Button>
+            <div className="flex justify-between items-center mb-4">
+              <p>Add new member(s) to the project</p>
+            <Button variant="outline" onClick={() => setOpenMemberDialog(true)}>Add Members</Button>
+            </div>
 
+            <div className="border-t border-gray-300 mb-4"></div>
+            
             {/* Dialog for adding members */}
             <Dialog open={openMemberDialog} onOpenChange={setOpenMemberDialog}>
               <DialogContent className="max-w-md">

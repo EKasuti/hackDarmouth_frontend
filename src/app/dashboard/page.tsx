@@ -91,7 +91,7 @@ export default function Dashboard() {
             </Button>
           </CardContent>
         </Card>
-        <Card>
+        <Card className="flex-1 shadow-sm rounded-2xl">
         <CardHeader className="flex items-center justify-between">
           <div className="flex items-center space-x-2">
             <Bell />
