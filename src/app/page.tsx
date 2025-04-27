@@ -3,7 +3,7 @@
 import { Suspense, useRef, useEffect, useState } from "react";
 import * as THREE from "three";
 import { Canvas, useFrame } from "@react-three/fiber";
-import { OrbitControls, Stars } from "@react-three/drei";
+import { OrbitControls, Stars, Text } from "@react-three/drei";
 import { useSession, signIn } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import earthTextureUrl from "../images/earth.jpg";
@@ -20,7 +20,7 @@ function SpaceBackground() {
 
 // -------------------- GLOBE COMPONENT --------------------
 function Globe({ autoRotate = true, rotationSpeed = 0.001 }: { autoRotate?: boolean; rotationSpeed?: number }) {
-  const globeRef = useRef<THREE.Mesh>(null!);
+  const rotatingGroup = useRef<THREE.Group>(null!);
   const [earthTexture, setEarthTexture] = useState<THREE.Texture | null>(null);
   const glowRef = useRef<THREE.Mesh>(null!);
 
@@ -29,14 +29,15 @@ function Globe({ autoRotate = true, rotationSpeed = 0.001 }: { autoRotate?: bool
     new THREE.TextureLoader().load(earthTextureUrl.src, setEarthTexture);
   }, []);
 
-  // Animate rotation + subtle float + glow pulse
+  // Animate globe rotation & subtle float (texts stay fixed)
   useFrame(({ clock }) => {
-    if (globeRef.current && autoRotate) {
-      globeRef.current.rotation.y += rotationSpeed;
+    const t = clock.getElapsedTime();
+
+    if (rotatingGroup.current && autoRotate) {
+      rotatingGroup.current.rotation.y += rotationSpeed;
+      rotatingGroup.current.position.y = Math.sin(t * 0.2) * 0.1;
     }
 
-    const t = clock.getElapsedTime();
-    if (globeRef.current) globeRef.current.position.y = Math.sin(t * 0.2) * 0.1;
     if (glowRef.current) {
       const s = 1.02 + Math.sin(t * 0.5) * 0.01;
       glowRef.current.scale.set(s, s, s);
@@ -49,23 +50,36 @@ function Globe({ autoRotate = true, rotationSpeed = 0.001 }: { autoRotate?: bool
     <>
       <color attach="background" args={["#000"]} />
 
+      {/* Lighting */}
       <ambientLight intensity={0.2} />
       <directionalLight position={[10, 10, 5]} intensity={3} color="#ffffff" />
       <pointLight position={[-10, 0, -20]} intensity={1} color="#3498db" />
 
-      <group>
-        {/* soft atmospheric glow */}
+      {/* ------------------ ROTATING EARTH ------------------ */}
+      <group ref={rotatingGroup}>
+        {/* Atmospheric glow */}
         <mesh ref={glowRef} scale={1.02}>
           <sphereGeometry args={[5, 64, 64]} />
           <meshBasicMaterial color="#3498db" transparent opacity={0.1} />
         </mesh>
 
         {/* Earth */}
-        <mesh ref={globeRef}>
+        <mesh>
           <sphereGeometry args={[5, 64, 64]} />
           <meshStandardMaterial map={earthTexture} metalness={0.1} roughness={0.8} />
         </mesh>
       </group>
+
+      {/* ------------------ FIXED OVERLAY TEXT ------------------ */}
+      <Text
+        position={[0, 0.3, 6]}
+        fontSize={0.8}
+        color="white"
+        anchorX="center"
+        anchorY="middle"
+      >
+        ResearchAI
+      </Text>
     </>
   );
 }
@@ -76,7 +90,7 @@ export default function InteractiveGlobe() {
   const router = useRouter();
   const [isRotating, setIsRotating] = useState(true);
 
-  // Once we're authenticated, head to the dashboard
+  // Redirect on authentication
   useEffect(() => {
     if (status === "authenticated") {
       router.push("/dashboard");
@@ -84,7 +98,6 @@ export default function InteractiveGlobe() {
   }, [status, router]);
 
   const handleLogin = () => signIn("google");
-
   const toggleRotation = () => setIsRotating((r) => !r);
 
   return (

@@ -348,13 +348,24 @@ export default function ProjectPage() {
         // Higher priority numbers first (3, 2, 1)
         return (b.priority || 0) - (a.priority || 0);
       } else {
-        // Default: sort by deadline
-        // Push tasks without deadlines to the very end
-        if (!a.deadline) return 1;
-        if (!b.deadline) return -1;
-        // Sort by deadline (earliest first)
-        const da = a.deadline instanceof Date ? a.deadline.getTime() : new Date(a.deadline).getTime();
-        const db = b.deadline instanceof Date ? b.deadline.getTime() : new Date(b.deadline).getTime();
+        const getDeadlineTime = (task: ProjectTask): number => {
+          if (!task.deadline) return Infinity;
+          
+          if (task.deadline instanceof Date) {
+            return task.deadline.getTime();
+          } else if ((task.deadline as { seconds: number; nanoseconds: number }).seconds !== undefined) {
+            // Firestore timestamp object
+            const deadlineTimestamp = task.deadline as { seconds: number; nanoseconds: number };
+            return deadlineTimestamp.seconds * 1000 + Math.floor(deadlineTimestamp.nanoseconds / 1_000_000);
+          } else {
+            // Fallback in case deadline is a string
+            return new Date(task.deadline as string).getTime();
+          }
+        };
+
+        const da = getDeadlineTime(a);
+        const db = getDeadlineTime(b);
+
         return da - db;
       }
     })
@@ -580,23 +591,30 @@ export default function ProjectPage() {
         </TabsContent>
 
         <TabsContent value="tasks">
-          <div className="mt-4">
-            <div className="flex justify-between items-center mb-4">
-              <h2 className="text-xl font-semibold">Tasks</h2>
-              <label htmlFor="sortMethod" className="text-sm text-gray-600">Sort by:</label>
-              <select
-                id="sortMethod"
-                value={sortMethod}
-                onChange={(e) => setSortMethod(e.target.value)}
-                className="border rounded px-2 py-1 text-sm"
-              >
-                <option value="deadline">Deadline</option>
-                <option value="priority">Priority</option>
-              </select>
-              <Dialog open={openDialog} onOpenChange={setOpenDialog}>
-                <DialogTrigger asChild>
-                  <Button >Add Task</Button>
-                </DialogTrigger>
+        <div className="mt-4">
+  <div className="flex justify-between items-center mb-4">
+    <h2 className="text-xl font-semibold">Tasks</h2>
+
+    {/* group label + dropdown */}
+    <div className="flex items-center space-x-2">
+      <label htmlFor="sortMethod" className="text-sm text-gray-600">
+        Sort by:
+      </label>
+      <select
+        id="sortMethod"
+        value={sortMethod}
+        onChange={(e) => setSortMethod(e.target.value)}
+        className="border rounded px-2 py-1 text-sm"
+      >
+        <option value="deadline">Deadline</option>
+        <option value="priority">Priority</option>
+      </select>
+    </div>
+
+    <Dialog open={openDialog} onOpenChange={setOpenDialog}>
+      <DialogTrigger asChild>
+        <Button>Add Task</Button>
+      </DialogTrigger>
                 <DialogContent className="max-w-md">
                   <DialogHeader>
                     <DialogTitle className="text-center">Create New Task</DialogTitle>
@@ -715,7 +733,16 @@ export default function ProjectPage() {
                       {/* First column */}
                       <div className="flex-1 flex items-center gap-4">
                         <div>
-                          <div className={`w-4 h-4 rounded-full ${priorityColor}`}></div>
+                        <div
+                          className={`
+                            w-4 h-4 rounded-full ${priorityColor}
+                            flex items-center justify-center
+                          `}
+                        >
+                          <span className="text-white text-xs font-bold">
+                            {task.priority === 3 ? '!!' : task.priority === 2 ? '!' : ''}
+                          </span>
+                        </div>
                         </div>
                         <div>
                           <h3 className="text-lg font-semibold">{task.title}</h3>
