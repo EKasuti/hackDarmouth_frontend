@@ -23,7 +23,6 @@ export default function Profile() {
   const [user, setUser] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  console.log("Session:", session);
 
   useEffect(() => {
     const fetchUserProfile = async (email: string) => {

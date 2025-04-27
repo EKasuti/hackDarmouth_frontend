@@ -25,8 +25,6 @@ export default function Projects() {
     fetchProjects();
   }, []);
 
-  console.log("Projects:", projects);
-
   function truncateText(text: string, wordLimit: number) {
     const words = text.split(" ");
     if (words.length <= wordLimit) return text;

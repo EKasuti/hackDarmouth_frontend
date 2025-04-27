@@ -4,9 +4,9 @@ import { NextResponse } from "next/server";
 
 export async function GET(
   request: Request,
-  { params }: { params: { email: string } }
+  { params }: { params: Promise<{ email: string }> }
 ) {
-  const email = params.email;
+  const { email } = await params; 
 
   if (!email) {
     return NextResponse.json({ error: "Email is required" }, { status: 400 });

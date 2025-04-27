@@ -4,6 +4,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import Image from "next/image";
 import { useEffect, useState } from "react";
 import { Github, Linkedin } from "lucide-react";
+import { formatFirebaseTimestamp } from "@/app/utils/utils";
 
 interface Member {
   id: string;
@@ -15,7 +16,7 @@ interface Member {
   bio: string;
   role: string;
   createdAt: {
-    seconds: number;
+    seconds: number; 
     nanoseconds: number;
   };
   github: string;
@@ -27,15 +28,6 @@ function getInitials(name: string) {
   const names = name.split(' ');
   const initials = names.map((n) => n[0]).join('');
   return initials.toUpperCase();
-}
-
-function formatFirebaseTimestamp(timestamp: { seconds: number; nanoseconds: number }): string {
-  const date = new Date(timestamp.seconds * 1000 + timestamp.nanoseconds / 1000000);
-  return date.toLocaleDateString('en-US', {
-    year: 'numeric',
-    month: 'long',
-    day: 'numeric'
-  });
 }
 
 export default function Members() {

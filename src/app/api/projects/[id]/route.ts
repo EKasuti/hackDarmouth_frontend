@@ -2,8 +2,11 @@ import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/firebase";
 import { doc, getDoc } from "firebase/firestore";
 
-export async function GET(request: NextRequest, { params }: { params: { id: string } }) {
-  const { id } = params;
+export async function GET(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> } 
+) {
+  const { id } = await params;  
 
   try {
     const projectRef = doc(db, "projects", id);

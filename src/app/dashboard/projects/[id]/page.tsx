@@ -1,6 +1,6 @@
 'use client';
 
-import { Project, ProjectMember, ProjectResource, ProjectTask } from "@/app/types/project";
+import { Project, ProjectMember, ProjectTask } from "@/app/types/project";
 
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useParams } from "next/navigation";
@@ -13,26 +13,32 @@ import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import Image from "next/image";
 import { DialogDescription } from "@radix-ui/react-dialog";
+import { ArrowRight } from "lucide-react";
+import { Video, FileText, Newspaper, Database, Code as CodeIcon, ExternalLink } from "lucide-react";
+import { formatFirebaseTimestamp } from "@/app/utils/utils";
 
+function tillDeadline(timestamp: { seconds: number; nanoseconds: number } | Date): string {
+  let deadline: Date;
 
-function tillDeadline(timestamp: { seconds: number; nanoseconds: number }): string {
-  const deadline = new Date(timestamp.seconds * 1000 + timestamp.nanoseconds / 1000000); // Convert to Date
-  const now = new Date(); // Current time
+  if (timestamp instanceof Date) {
+    deadline = timestamp;
+  } else {
+    deadline = new Date(timestamp.seconds * 1000 + timestamp.nanoseconds / 1000000);
+  }
 
-  // Calculate the difference in milliseconds
+  const now = new Date();
+
   const diffInMs = deadline.getTime() - now.getTime();
-  
-  // If the deadline has already passed
+
   if (diffInMs < 0) {
     return "Deadline passed";
   }
 
-  const diffInSec = diffInMs / 1000; // Convert to seconds
-  const diffInMin = diffInSec / 60; // Convert to minutes
-  const diffInHr = diffInMin / 60; // Convert to hours
-  const diffInDays = diffInHr / 24; // Convert to days
+  const diffInSec = diffInMs / 1000;
+  const diffInMin = diffInSec / 60;
+  const diffInHr = diffInMin / 60;
+  const diffInDays = diffInHr / 24;
 
-  // Return in the most appropriate format
   if (diffInDays >= 1) {
     return `${Math.floor(diffInDays)} days`;
   } else if (diffInHr >= 1) {
@@ -44,6 +50,98 @@ function tillDeadline(timestamp: { seconds: number; nanoseconds: number }): stri
   }
 }
 
+
+function ProjectTabs({ project }: { project: Project }) {
+  const [selectedCategory, setSelectedCategory] = useState<string>("all");
+
+  const categoryColors: Record<string, string> = {
+    video:   "bg-[#01693E]",
+    paper:   "bg-[#01693E]",
+    article: "bg-[#01693E]",
+    dataset: "bg-[#01693E]",
+    code:    "bg-[#01693E]",
+  };
+
+  const categoryIcons: Record<string, React.FC<React.SVGProps<SVGSVGElement>>> = {
+    video:   Video,
+    paper:   FileText,
+    article: Newspaper,
+    dataset: Database,
+    code:    CodeIcon,
+  };
+
+  const filteredResources =
+    selectedCategory === "all"
+      ? project.resources
+      : project.resources.filter(r => r.category === selectedCategory);
+
+  return (
+    <div>
+      <div className="mb-4 flex items-center space-x-2">
+        <select
+          id="categoryFilter"
+          value={selectedCategory}
+          onChange={e => setSelectedCategory(e.target.value)}
+          className="border rounded px-2 py-1 text-sm"
+        >
+          <option value="all">All</option>
+          {Object.keys(categoryColors).map(cat => (
+            <option key={cat} value={cat}>
+              {cat.charAt(0).toUpperCase() + cat.slice(1)}
+            </option>
+          ))}
+        </select>
+      </div>
+  
+      {filteredResources.length > 0 ? (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          {filteredResources.map(resource => {
+            const bgColor = categoryColors[resource.category] || "bg-gray-300";
+            const Icon = categoryIcons[resource.category] || FileText;
+
+        return (
+          <div
+            key={resource.id}
+            className="border rounded-lg p-4 shadow-sm hover:shadow-md transition-shadow flex flex-col"
+          >
+            <div className="flex items-center space-x-2 mb-3">
+              <Icon
+                className={`p-1 rounded-full text-white ${bgColor}`}
+              />
+              <h3 className="font-medium text-lg">{resource.title}</h3>
+            </div>
+
+            {/* ▶ description */}
+            {resource.description && (
+              <p className="text-sm text-gray-600 mb-3 overflow-hidden line-clamp-3">
+                {resource.description}
+              </p>
+            )}
+
+            {/* ▶ view button */}
+            {resource.url && (
+              <Button asChild size="sm" className="mt-auto self-start">
+                <a
+                  href={resource.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-center px-4"
+                >
+                  View Resource 
+                  <ExternalLink className="ml-1" size={16} />
+                </a>
+              </Button>
+            )}
+          </div>
+        );
+      })}
+        </div>
+      ) : (
+        <p>No resources in this category.</p>
+      )}
+    </div>
+  );
+}
 
 export default function ProjectPage() {
   const { id: projectID } = useParams();
@@ -60,9 +158,20 @@ export default function ProjectPage() {
   const [deadline, setDeadline] = useState<Date | undefined>(undefined);
   const [timeline, setTimeline] = useState(false);
 
-  // Adding members
+  // Adding a new resource
+  const [resourceTitle, setResourceTitle] = useState("");
+  const [resourceDescription, setResourceDescription] = useState("");
+  const [resourceUrl, setResourceUrl] = useState("");
+  const [resourceCategory, setResourceCategory] = useState("");
+
+  // Adding members to the task
   const [members, setMembers] = useState<ProjectMember[]>([]);
   const [selectedMembers, setSelectedMembers] = useState<ProjectMember[]>([]);
+
+  // Adding members to the project
+  const [openMemberDialog, setOpenMemberDialog] = useState(false);
+  const [selectedNewMembers, setSelectedNewMembers] = useState<ProjectMember[]>([]);
+  const [addingMembers, setAddingMembers] = useState(false);
 
   // UseEffect to fetch project data
   useEffect(() => {
@@ -120,7 +229,7 @@ export default function ProjectPage() {
           deadline,
           assignees: selectedMembers.map((m) => ({
             id: m.id,
-            name: m.name,
+            name: m.username,
             email: m.email,
             role: m.role,
             avatar_url: m.avatar_url,
@@ -162,13 +271,83 @@ export default function ProjectPage() {
     }
   };
 
+  // Function to handle resource creation
+  async function handleCreateResource() {
+    if (!resourceTitle || !resourceCategory) {
+      alert("Please fill in all required fields.");
+      return;
+    }
+    
+    try {
+      const res = await fetch("/api/resources", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          projectId: projectID,
+          title: resourceTitle,
+          description: resourceDescription,
+          url: resourceUrl,
+          category: resourceCategory,
+        }),
+      });
+  
+      if (!res.ok) {
+        const errorMessage = await res.text();
+        throw new Error(errorMessage);
+      }
+  
+      // Reset form fields
+      setResourceTitle("");
+      setResourceDescription("");
+      setResourceUrl("");
+      setResourceCategory("");
+  
+      setOpenDialog(false);
+    } catch (error) {
+      console.error("Failed to create resource:", error);
+      alert("Failed to create resource. Please try again.");
+    }
+  }
+
+  // Function to add members to the project
+  const handleAddMembers = async () => {
+    try {
+      setAddingMembers(true);
+  
+      for (const member of selectedNewMembers) {
+        await fetch('/api/projects/add_member', {
+          method: 'POST',
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            projectId: projectID,
+            member
+          })
+        });
+      }
+  
+      // Update local project state immediately
+      setProject((prev) =>
+        prev ? { ...prev, members: [...(prev.members || []), ...selectedNewMembers] } : prev
+      );
+  
+      setSelectedNewMembers([]);
+      setOpenMemberDialog(false);
+    } catch (error) {
+      console.error("Error adding members:", error);
+    } finally {
+      setAddingMembers(false);
+    }
+  };
+
+  // function to handle resource
   if (loading) return <div className="text-center mt-10">Loading project...</div>;
   if (error) return <div className="text-center mt-10 text-red-500">Error: {error}</div>;
   if (!project) return <div className="text-center mt-10">No project found.</div>;
 
-
   return (
-    <div className="">
+    <div className="p-4 px-12">
       <Tabs defaultValue="overview" className="w-full">
         <TabsList className="grid w-full grid-cols-4">
           <TabsTrigger value="overview">Overview</TabsTrigger>
@@ -198,23 +377,162 @@ export default function ProjectPage() {
           </div>
             <p>{project.description}</p>
           </div>
+
+          {/* Timeline */}
+          {project.timeline && project.timeline.length > 0 && (
+            <div className="mt-10">
+              <h2 className="text-xl font-semibold mb-4">Project Timeline</h2>
+              <div className="relative flex items-center overflow-x-auto pb-10">
+                {/* Horizontal Line */}
+                <div className="absolute top-4 left-0 w-full border-t border-gray-300"></div>
+
+                {/* Timeline Items */}
+                {project.timeline.map((item, idx) => (
+                  <div key={idx} className="flex flex-col items-center relative min-w-[150px] mx-8">
+                    {/* Circle */}
+                    <div className="w-8 h-8 bg-blue-500 rounded-full z-10 border-2 border-white"></div>
+                    
+
+                    {/* Task Title */}
+                    <span className="mt-2 text-center text-sm font-medium">{item.title}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Members Section */}
+          {project.members && project.members.length > 0 && (
+            <div className="mt-10">
+              <h2 className="text-xl font-semibold mb-4">Project Members</h2>
+
+              <div className="overflow-x-auto border rounded-lg shadow-sm">
+                <table className="min-w-full text-sm text-left p-4">
+                  <thead className="border-b">
+                    <tr>
+                      <th className="p-2">Avatar</th>
+                      <th className="p-2">Name & Role</th>
+                      <th className="p-2">Email</th>
+                      <th className="p-2">Specialities</th>
+                      <th className="p-2">Member since</th>
+                      <th className="p-2">Visit Profile</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {project.members.map((member) => (
+                      <tr key={member.id} className="border-b">
+                        <td className="p-4">
+                          <Image
+                            src={member.avatar_url}
+                            alt={member.username || "Member avatar"}
+                            width={40}
+                            height={40}
+                            className="rounded-full object-cover"
+                          />
+                        </td>
+                        <td className="p-2">
+                          <div className="font-medium">{member.username}</div>
+                          <div className="text-xs text-gray-500">{member.role}</div>
+                        </td>
+                        <td className="p-2"> {member.email} </td>
+                        <td className="p-2"> {member.specialities?.length > 0 ? member.specialities.split(",").join(", ") : "-"} </td>
+                        <td className="p-2"> {formatFirebaseTimestamp(member.createdAt)} </td>
+                        <td className="p-2">
+                          <a
+                            href={`/dashboard/members`}
+                            className="text-blue-600 hover:underline text-sm"
+                          >
+                            <ArrowRight/>
+                          </a>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+
         </TabsContent>
 
         <TabsContent value="resources">
           <div className="mt-4">
-            <h2 className="text-xl font-semibold mb-2">Resources</h2>
-            {project.resources && project.resources.length > 0 ? (
-              <ul className="list-disc list-inside">
-                {project.resources.map((resource: ProjectResource, index: number) => (
-                  <li key={index}>{resource.title}</li>
-                ))}
-              </ul>
-            ) : (
-              <p>No resources added yet.</p>
-            )}
+            {/* 1. Category filter */}
+            <div className="flex justify-between items-center mb-4">
+              <h2 className="text-xl font-semibold">Filter</h2>
+              <Dialog open={openDialog} onOpenChange={setOpenDialog}>
+                <DialogTrigger asChild>
+                  <Button>Add Resource</Button>
+                </DialogTrigger>
+                <DialogContent className="max-w-md">
+                  <DialogHeader>
+                    <DialogTitle className="text-center">Create New Resource</DialogTitle>
+                  </DialogHeader>
+                  <DialogDescription>
+                    Fill in the details below to add a new resource to the project.
+                  </DialogDescription>
+                  <div className="space-y-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="resourceTitle">Title</Label>
+                      <Input
+                        id="resourceTitle"
+                        value={resourceTitle}
+                        onChange={(e) => setResourceTitle(e.target.value)}
+                        placeholder="Resource title"
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="resourceDescription">Description</Label>
+                      <Input
+                        id="resourceDescription"
+                        value={resourceDescription}
+                        onChange={(e) => setResourceDescription(e.target.value)}
+                        placeholder="Brief description"
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="resourceUrl">URL</Label>
+                      <Input
+                        id="resourceUrl"
+                        type="url"
+                        value={resourceUrl}
+                        onChange={(e) => setResourceUrl(e.target.value)}
+                        placeholder="https://example.com"
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="resourceCategory">Category</Label>
+                      <select
+                        id="resourceCategory"
+                        value={resourceCategory}
+                        onChange={(e) => setResourceCategory(e.target.value)}
+                        className="w-full rounded-md border border-gray-300 px-3 py-2"
+                      >
+                        <option value="" disabled>
+                          Select category
+                        </option>
+                        <option value="video">Video</option>
+                        <option value="article">Article</option>
+                        <option value="paper">Paper</option>
+                        <option value="dataset">Dataset</option>
+                        <option value="code">Code</option>
+                      </select>
+                    </div>
+
+                    <Button onClick={handleCreateResource} className="w-full mt-2">
+                      Create Resource
+                    </Button>
+                  </div>
+                </DialogContent>
+              </Dialog>
+            </div>
+
+            <ProjectTabs project={project} />
           </div>
         </TabsContent>
-
 
         <TabsContent value="tasks">
           <div className="mt-4">
@@ -301,13 +619,13 @@ export default function ProjectPage() {
                               />
                               <Image 
                                 src={member.avatar_url} 
-                                alt={member.name || "Member avatar"} 
+                                alt={member.username || "Member avatar"} 
                                 width={32}
                                 height={32}
                                 className="rounded-full object-cover"
                               />
                               <div className="flex flex-col">
-                                <span className="font-medium">{member.name}</span>
+                                <span className="font-medium">{member.username}</span>
                                 <span className="text-xs text-gray-500">{member.email}</span>
                               </div>
                             </div>
@@ -328,9 +646,8 @@ export default function ProjectPage() {
               <div className="grid gap-4">
                 {project.tasks.map((task: ProjectTask, index: number) => {
                   // Calculate hours left
-                  const toDeadline = task.deadline
-                    ? tillDeadline({ seconds: Math.floor(task.deadline.getTime() / 1000), nanoseconds: (task.deadline.getTime() % 1000) * 1000000 })
-                    : "No deadline";
+                  const deadlineDate = task.deadline ? tillDeadline(task.deadline) : null;
+                  const toDeadline = deadlineDate ? deadlineDate + " left" : "No deadline";
                   
                   // Determine priority color
                   let priorityColor = "bg-gray-400"; // default
@@ -353,7 +670,7 @@ export default function ProjectPage() {
                       {/* Second column */}
                       <div className="flex flex-col items-end gap-2">
                         {/* Deadline */}
-                        <span className="text-sm text-gray-500">{toDeadline} left</span>
+                        <span className="text-sm text-gray-500">{toDeadline}</span>
 
                         {/* Assignees */}
                         {task.assignees && task.assignees.length > 0 ? (
@@ -362,7 +679,7 @@ export default function ProjectPage() {
                               <Image
                                 key={idx}
                                 src={assignee.avatar_url}
-                                alt={assignee.name || "assignee"}
+                                alt={assignee.username || "assignee"}
                                 width={32}
                                 height={32}
                                 className="rounded-full border-2 border-white object-cover"
@@ -385,11 +702,65 @@ export default function ProjectPage() {
 
         <TabsContent value="settings">
           <div className="mt-4">
-            <h2 className="text-xl font-semibold mb-2">Settings</h2>
-            <p>Project settings will go here...</p>
+            <h2 className="text-xl font-semibold mb-4">Settings</h2>
+
+            <Button onClick={() => setOpenMemberDialog(true)}>Add Members</Button>
+
+            {/* Dialog for adding members */}
+            <Dialog open={openMemberDialog} onOpenChange={setOpenMemberDialog}>
+              <DialogContent className="max-w-md">
+                <DialogHeader>
+                  <DialogTitle className="text-center">Add Members to Project</DialogTitle>
+                </DialogHeader>
+                <DialogDescription>Select members you want to add to this project.</DialogDescription>
+                
+                <div className="space-y-4 mt-4 max-h-64 overflow-y-auto">
+                  {members.map((member) => {
+                    const isSelected = selectedNewMembers.some((m) => m.id === member.id);
+
+                    return (
+                      <div key={member.id} className="flex items-center gap-3 p-1">
+                        <input
+                          type="checkbox"
+                          checked={isSelected}
+                          onChange={() => {
+                            if (isSelected) {
+                              setSelectedNewMembers(prev => prev.filter(m => m.id !== member.id));
+                            } else {
+                              setSelectedNewMembers(prev => [...prev, member]);
+                            }
+                          }}
+                        />
+                        <Image 
+                          src={member.avatar_url} 
+                          alt={member.username || "Member avatar"} 
+                          width={32}
+                          height={32}
+                          className="rounded-full object-cover"
+                        />
+                        <div className="flex flex-col">
+                          <span className="font-medium">{member.username}</span>
+                          <span className="text-xs text-gray-500">{member.email}</span>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+
+                <Button 
+                  onClick={handleAddMembers}
+                  disabled={addingMembers || selectedNewMembers.length === 0}
+                  className="w-full mt-4"
+                >
+                  {addingMembers ? "Adding..." : "Add Selected Members"}
+                </Button>
+              </DialogContent>
+            </Dialog>
           </div>
         </TabsContent>
+
       </Tabs>
     </div>
   );
 }
+

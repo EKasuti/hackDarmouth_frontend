@@ -10,11 +10,15 @@ export interface ProjectResource{
 }
 export interface ProjectMember {
     id: string;
-    name: string;
+    username: string;
     email: string;
     role: string;
     avatar_url: string;
     specialities: string;
+    createdAt: {
+        seconds: number;
+        nanoseconds: number;
+    };
 }
 
 export interface Timeline {
