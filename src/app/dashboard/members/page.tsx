@@ -86,7 +86,7 @@ export default function Members() {
                 </div>
                 <div className="mt-4">
                   <p className="text-sm"><strong>Role:</strong> {member.role}</p>
-                  <p className="text-sm"><strong>Bio:</strong> {member.bio}</p>
+                  <p className="text-sm truncate"><strong>Bio:</strong> {member.bio}</p>
                   <p className="text-sm"><strong>Specialities:</strong> {member.specialities}</p>
                   <p className="text-sm"><strong>Member since:</strong> {formatFirebaseTimestamp(member.createdAt)}</p>
                   <div className="flex items-center gap-2 mt-2">
