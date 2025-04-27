@@ -1,13 +1,11 @@
-// app/api/projects/[id]/route.ts
-
-import { NextResponse } from "next/server";
-import { doc, getDoc } from "firebase/firestore";
+import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/firebase";
+import { doc, getDoc } from "firebase/firestore";
 
-export async function GET(request: Request, { params }: { params: { id: string } }) {
+export async function GET(request: NextRequest, { params }: { params: { id: string } }) {
+  const { id } = params;
+
   try {
-    const { id } = params;
-
     const projectRef = doc(db, "projects", id);
     const projectSnap = await getDoc(projectRef);
 
@@ -15,14 +13,9 @@ export async function GET(request: Request, { params }: { params: { id: string }
       return NextResponse.json({ error: "Project not found" }, { status: 404 });
     }
 
-    const projectData = projectSnap.data();
-
-    return NextResponse.json({
-      id: projectSnap.id,
-      ...projectData,
-    });
+    return NextResponse.json({ id: projectSnap.id, ...projectSnap.data() }, { status: 200 });
   } catch (error) {
-    console.error("[PROJECT_GET]", error);
-    return new NextResponse("Internal Server Error", { status: 500 });
+    console.error("Error fetching project:", error);
+    return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
   }
 }

@@ -3,6 +3,12 @@ import { doc, getDoc, setDoc } from "firebase/firestore";
 import GoogleProvider from "next-auth/providers/google";
 import { NextAuthOptions } from "next-auth";
 
+declare module "next-auth" {
+  interface Session {
+    accessToken?: string;
+  }
+}
+
 export const authOptions: NextAuthOptions = {
   providers: [
     GoogleProvider({
@@ -59,7 +65,7 @@ export const authOptions: NextAuthOptions = {
       return token;
     },
     async session({ session, token }) {
-      (session as any).accessToken = token.accessToken;
+      session.accessToken = token.accessToken as string;
       return session;
     },
     
