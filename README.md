@@ -1,4 +1,4 @@
-# hackDarmouth_frontend
+# Research AI
 
 
 ## Inspiration
